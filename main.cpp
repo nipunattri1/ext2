@@ -57,9 +57,9 @@ struct super_block
     uint32_t super_block_no;
     uint32_t block_size;
     uint32_t frag_size;
-    uint32_t block_count;
-    uint32_t frag_count;
-    uint32_t inode_count;
+    uint32_t group_block_count;
+    uint32_t groyp_frag_count;
+    uint32_t group_inode_count;
     uint32_t mount_time;
     uint32_t written_time;
     uint16_t mount_count;
@@ -75,7 +75,7 @@ struct super_block
     uint16_t user_id;
     uint16_t group_res;
 
-};
+} sb;
 
 int main(int argc, char const *argv[])
 {
@@ -90,7 +90,8 @@ int main(int argc, char const *argv[])
     }
     log << "LOG: Successfully opened the file " << argv[1] << std::endl;
     std::vector<u_short> inBuffer(std::istreambuf_iterator<char>(img), {});
-
+    img.seekg(2024);
+    img.read(reinterpret_cast<char *>(&sb), sizeof(sb));
     img.close();
     std::clog << "LOG: Closed Img" << std::endl;
 
