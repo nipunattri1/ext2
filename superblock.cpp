@@ -48,39 +48,39 @@ void superBlock(std::ifstream &img, super_block &sb)
     std::cout << "major_ver: " << sb.major_ver << "\n";
     std::cout << "user_id: " << sb.user_id << "\n";
     std::cout << "group_res: " << sb.group_res << "\n";
-    if (sb.major_ver >= 1)
-    {
-        ext_super_block ex_sb;
-        img.read(reinterpret_cast<char *>(&ex_sb), sizeof(ex_sb));
-        std::cout << "first_inode: " << ex_sb.first_inode << "\n";
-        std::cout << "inode_size: " << ex_sb.inode_size << "\n";
-        std::cout << "sb_block: " << ex_sb.sb_block << "\n";
-        std::cout << "opt_feat: " << ex_sb.opt_feat << "\n";
-        std::cout << "req_feat: " << ex_sb.req_feat << "\n";
-        std::cout << "read_only_feat: " << ex_sb.read_only_feat << "\n";
+    // if (sb.major_ver >= 1)
+    // {
+        // ext_super_block ex_sb;
+        // img.read(reinterpret_cast<char *>(&ex_sb), sizeof(ex_sb));
+        std::cout << "first_inode: " << sb.ext_sb.first_inode << "\n";
+        std::cout << "inode_size: " << sb.ext_sb.inode_size << "\n";
+        std::cout << "sb_block: " << sb.ext_sb.sb_block << "\n";
+        std::cout << "opt_feat: " << sb.ext_sb.opt_feat << "\n";
+        std::cout << "req_feat: " << sb.ext_sb.req_feat << "\n";
+        std::cout << "read_only_feat: " << sb.ext_sb.read_only_feat << "\n";
         std::cout << "file_sys_id: "; // TODO
         // printArr(ex_sb.file_sys_id, 16);
         for (int i = 0; i < 16; ++i)
         {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ex_sb.file_sys_id[i]);
+            std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(sb.ext_sb.file_sys_id[i]);
         }
         std::cout << std::dec << "\n";
         std::cout << "vol_name: "; // TODO
-        printArr(ex_sb.vol_name, 16);
+        printArr(sb.ext_sb.vol_name, 16);
         std::cout << "vol_path: ";
-        printArr(ex_sb.vol_path, 64);
-        std::cout << "comp_algo: " << ex_sb.comp_algo << "\n";
-        std::cout << "pre_allo_files: " << ex_sb.comp_algo << "\n";
-        std::cout << "pre_allo_dir: " << ex_sb.pre_allo_dir << "\n";
+        printArr(sb.ext_sb.vol_path, 64);
+        std::cout << "comp_algo: " << sb.ext_sb.comp_algo << "\n";
+        std::cout << "pre_allo_files: " << sb.ext_sb.comp_algo << "\n";
+        std::cout << "pre_allo_dir: " << sb.ext_sb.pre_allo_dir << "\n";
         // printArr(ex_sb.pre_allo_dir, );
         std::cout << "journal_id: ";
         for (int i = 0; i < 16; ++i)
         {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ex_sb.journal_id[i]);
+            std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(sb.ext_sb.journal_id[i]);
         }
         std::cout << std::dec << "\n";
-        std::cout << "journal_inode: " << ex_sb.journal_inode << "\n";
-        std::cout << "jourrnal_device: " << ex_sb.jourrnal_device << "\n";
-        std::cout << "inode_list_head: " << ex_sb.inode_list_head << "\n";
-    }
+        std::cout << "journal_inode: " << sb.ext_sb.journal_inode << "\n";
+        std::cout << "jourrnal_device: " << sb.ext_sb.jourrnal_device << "\n";
+        std::cout << "inode_list_head: " << sb.ext_sb.inode_list_head << "\n";
+    // }
 }
