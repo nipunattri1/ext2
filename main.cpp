@@ -1,70 +1,14 @@
+#include "struct.hpp"
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <cmath>
 #include <iomanip>
+
+super_block sb;
+
 void superBlock(std::ifstream &img);
-
-struct super_block
-{
-    uint32_t inode_count;
-    uint32_t block_count;
-    uint32_t reserve_count;
-    uint32_t unallo_blocks;
-    uint32_t unallo_inodes;
-    uint32_t super_block_no;
-    uint32_t block_size;
-    uint32_t frag_size;
-    uint32_t group_block_count;
-    uint32_t groyp_frag_count;
-    uint32_t group_inode_count;
-    uint32_t mount_time;
-    uint32_t written_time;
-    uint16_t mount_count;
-    uint16_t max_mnt;
-    uint16_t ext2_sig;
-    uint16_t fs_state;
-    uint16_t error_act;
-    uint16_t minor_ver;
-    uint32_t const_check;
-    uint32_t force_check;
-    uint32_t os_id;
-    uint32_t major_ver;
-    uint16_t user_id;
-    uint16_t group_res;
-
-} sb;
-struct ext_super_block
-{
-    uint32_t first_inode;
-    uint16_t inode_size;
-    uint16_t sb_block;
-    uint32_t opt_feat;
-    uint32_t req_feat;
-    uint32_t read_only_feat;
-    uint8_t file_sys_id[16];
-    uint8_t vol_name[16];
-    uint8_t vol_path[64];
-    uint32_t comp_algo;
-    uint8_t pre_allo_files;
-    uint8_t pre_allo_dir;
-    uint16_t _;
-    uint8_t journal_id[16];
-    uint32_t journal_inode;
-    uint32_t jourrnal_device;
-    uint32_t inode_list_head;
-};
-
-struct block_group_decriptor
-{
-    uint32_t block_bitmap;
-    uint32_t inode_bitmap;
-    uint32_t addr_inode_table;
-    uint16_t unall_blocks;
-    uint16_t unall_inodes;
-    uint16_t dir_count;
-};
 
 void printArr(uint8_t arr[], int size)
 {
@@ -77,22 +21,24 @@ void printArr(uint8_t arr[], int size)
     std::cout << std::endl;
 }
 
-void print_gdt_entry(const block_group_decriptor& bgd, uint32_t group_id, uint32_t actual_block_size) {
+void print_gdt_entry(const block_group_decriptor &bgd, uint32_t group_id, uint32_t actual_block_size)
+{
+    std::cout << std::endl;
+
+    unsigned int lastgroup{group_id * sb.group_block_count};
+    if ((sb.block_count) / ((group_id + 1) * sb.group_block_count + 1) == 0)
+        lastgroup += (sb.block_count) % (((group_id + 1) * sb.group_block_count) + 1) - 1;
+    else
+        lastgroup += sb.group_block_count;
+
     std::ostringstream oss;
-    uint64_t group_start_block = static_cast<uint64_t>(group_id) * bgd.block_bitmap; 
-    uint64_t group_start = group_id * (actual_block_size / sizeof(block_group_decriptor));  
+    oss << "Group " << group_id << ": (Blocks " << group_id * sb.group_block_count + 1 << "-" << lastgroup << ")\n";
+    oss << ((group_id == 0) ? "Primary superblock" : "Backup superblock") << " at " << group_id * sb.group_block_count + 1 << " Group Descriptors at " << ((group_id == 0) ? 2 : group_id * sb.group_block_count + 1) << "-" << ((group_id == 0) ? 2 : group_id * sb.group_block_count + 1) << "\n";
+    oss << "Block bitmap at " << bgd.block_bitmap << std::endl;
+    oss << "Inode bitmap at " << bgd.inode_bitmap << std::endl;
+    oss << "Inode table at " <<  bgd.addr_inode_table <<std::endl;
+    oss << bgd.unall_blocks << " free Blocks, " <<  bgd.unall_inodes << " free inodes, "<< bgd.dir_count<<" directories"<<std::endl;
 
-
-    oss << "(Group " << group_id << ": Blocks " << (group_id * 10000 + 1) << " to " << ((group_id + 1) * 10000) << " approx, based on group_block_count)\n";  // Placeholder; use real blocks_per_group from sb
-    oss << "\tSuperblock type: primary if group 0, else secondary/backup\n";
-    oss << "\tGroup descriptors at offset " << (1024 + actual_block_size + group_id * 32) << " (32 bytes/entry)\n";
-    oss << "\tReserved GDT blocks: at end of group descriptors (if sparse)\n";
-    oss << "\tBlock bitmap at block " << bgd.block_bitmap << " (offset: " << (bgd.block_bitmap * actual_block_size) << ")\n";
-    oss << "\tInode bitmap at block " << bgd.inode_bitmap << " (offset: " << (bgd.inode_bitmap * actual_block_size) << ")\n";
-    oss << "\tInode table at blocks " << bgd.addr_inode_table << " to " << (bgd.addr_inode_table + (sb.group_inode_count / 8 / actual_block_size)) << " (approx, offset start: " << (bgd.addr_inode_table * actual_block_size) << ")\n";  // Rough calc; inodes per block = block_size / inode_size
-    oss << "\t" << bgd.unall_blocks << " free blocks, " << bgd.unall_inodes << " free inodes, " << bgd.dir_count << " directories\n";
-    oss << "\tFree blocks: " << bgd.unall_blocks << " (total in group)\n";
-    oss << "\tFree inodes: " << bgd.unall_inodes << " (total in group)\n";
     std::cout << oss.str();
 }
 
@@ -104,7 +50,6 @@ int main(int argc, char const *argv[])
         std::cerr << "Invalid args, Run program as: " << argv[0] << "<.img>" << std::endl;
     }
     // read inputed file (img)
-    // std::ofstream log(std::format("{}.log", argv[1]));
     std::ifstream img(argv[1], std::ios::binary);
     if (!img)
     {
@@ -115,15 +60,20 @@ int main(int argc, char const *argv[])
     img.seekg(1024);
     img.read(reinterpret_cast<char *>(&sb), sizeof(sb));
     superBlock(img);
+
     unsigned int block_size = 1024 << sb.block_size;
     unsigned int frag_size = 1024 << sb.frag_size;
-    unsigned int blocks = sb.block_count / sb.group_block_count + (sb.block_count % sb.group_block_count) ? 1 : 0;
-    for (int i = 1; i <= blocks; i++)
+
+    unsigned int group_count = sb.block_count / sb.group_block_count;
+    if (sb.block_count % sb.group_block_count != 0)
+        group_count++;
+
+    for (int i = 0; i < group_count; i++)
     {
         block_group_decriptor bgd;
-        img.seekg(1024 + (sb.block_size * i));
+        img.seekg(2048 + (sb.block_size * i));
         img.read(reinterpret_cast<char *>(&bgd), sizeof(block_group_decriptor));
-        print_gdt_entry(bgd, i-1, block_size);
+        print_gdt_entry(bgd, i, block_size);
     }
     img.close();
 
