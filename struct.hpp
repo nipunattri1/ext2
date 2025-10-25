@@ -1,4 +1,5 @@
-#pragma once
+#ifndef STRUCT_H
+#define STRUCT_H
 #include <cstdint>
 struct super_block
 {
@@ -59,3 +60,4 @@ struct block_group_decriptor
     uint16_t unall_inodes;
     uint16_t dir_count;
 };
+#endif
