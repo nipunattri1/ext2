@@ -22,6 +22,12 @@ struct ext_super_block
     uint32_t inode_list_head;
 };
 
+struct misc_info{
+    unsigned int block_size;
+    unsigned int frag_size;
+    unsigned int group_count;
+
+};
 #pragma pack(push, 1)
 struct super_block
 {
@@ -30,7 +36,7 @@ struct super_block
     uint32_t reserve_count;
     uint32_t unallo_blocks;
     uint32_t unallo_inodes;
-    uint32_t super_block_no;
+    uint32_t first_data_block;
     uint32_t block_size;
     uint32_t frag_size;
     uint32_t group_block_count;
@@ -76,7 +82,7 @@ struct i_osd2
 
 };
 
-struct inode_table
+struct inode
 {
     uint16_t i_mode;
     uint16_t i_uid;
@@ -98,5 +104,7 @@ struct inode_table
     i_osd2 i_osd2_val;
 };
 #pragma pack(pop)
+
+
 
 #endif
