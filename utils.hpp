@@ -6,10 +6,12 @@ class DiskUtil
 {
     Disk disk;
     std::stack<unsigned int> folderStack;
+    std::vector<directory> dirEntries;
 
 private:
     void print_gdt_entry(const block_group_decriptor &bgd, uint32_t group_id);
     void printArr(uint8_t arr[], int size);
+    void setDirFiles(std::ifstream &img);
 
 
 public:

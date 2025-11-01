@@ -109,9 +109,8 @@ void DiskUtil::printArr(uint8_t arr[], int size)
     std::cout << std::endl;
 }
 
-void DiskUtil::ls(std::ifstream &img)
+void DiskUtil::setDirFiles(std::ifstream &img)
 {
-
     if (folderStack.empty())
         folderStack.push(2); // if folder stack is empty then make to root inode
 
@@ -129,18 +128,30 @@ void DiskUtil::ls(std::ifstream &img)
             offset += dirEntry.rec_len;
             if (dirEntry.inode == 0)
                 break;
-            for (int k = 0; k < dirEntry.name_len; k++)
-            {
-                std::cout << dirEntry.name[k];
-            }
-            if (dirEntry.file_type == 2)
-                std::cout<<"/";            
-            if (dirEntry.name_len != 0)
-                std::cout << std::endl;
+
+            dirEntries.insert(dirEntries.end(), dirEntry);
+
         } while (offset < disk.getMiscInfo().block_size);
-    }else
-    {
-        std::cout<<"ERR: inode at top of stack is not a directory!"<<std::endl;
     }
-    
+    else
+    {
+        std::cout << "ERR: inode at top of stack is not a directory!" << std::endl;
+    }
+}
+
+void DiskUtil::ls(std::ifstream &img)
+{
+
+    setDirFiles(img);
+    for (directory i : dirEntries)
+    {
+        for (int k = 0; k < i.name_len; k++)
+        {
+            std::cout << i.name[k];
+        }
+        if (i.file_type == 2)
+            std::cout << "/";
+        if (i.name_len != 0)
+            std::cout << std::endl;
+    }
 }
