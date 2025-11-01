@@ -26,9 +26,9 @@ struct misc_info{
     unsigned int block_size;
     unsigned int frag_size;
     unsigned int group_count;
+    unsigned int root_inode;
 
 };
-#pragma pack(push, 1)
 struct super_block
 {
     uint32_t inode_count;
@@ -103,7 +103,16 @@ struct inode
     uint32_t i_faddr;
     i_osd2 i_osd2_val;
 };
-#pragma pack(pop)
+
+struct directory
+{
+    uint32_t inode;
+    uint16_t rec_len;
+    uint8_t name_len;
+    uint8_t file_type;
+    char name[256];
+};
+
 
 
 

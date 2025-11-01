@@ -22,15 +22,31 @@ int main(int argc, char const *argv[])
     disk.setSuperBlock(img);
     disk.setGDT(img);
     disk.setinodeTable(img);
+    
 
     // setup an util class instance
     DiskUtil util;
     util.setDisk(disk);
-    
+
     std::string in;
-    scanf("%[^\n]", &in);
-    util.printSuperBlock(img);
-    util.printGDTEntries();
+    do
+    {
+        std::cout<<"\n> ";
+        std::cin>>in;
+        if (in == "ls")
+        {
+            util.ls(img);
+        }
+        else if (in == "info")
+        {
+            std::cout<<"===Printing Info==="<<std::endl;
+            util.printSuperBlock(img);
+            util.printGDTEntries();
+        } else if (in != "exit"){
+            std::cout<<"Unknown command " << in <<std::endl;
+        }
+
+    } while (in != "exit");
 
     img.close();
 

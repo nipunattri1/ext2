@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include <stack>
 
 void DiskUtil::print_gdt_entry(const block_group_decriptor &bgd, uint32_t group_id)
 {
@@ -106,4 +107,40 @@ void DiskUtil::printArr(uint8_t arr[], int size)
         std::cout << arr[i];
     }
     std::cout << std::endl;
+}
+
+void DiskUtil::ls(std::ifstream &img)
+{
+
+    if (folderStack.empty())
+        folderStack.push(2); // if folder stack is empty then make to root inode
+
+    inode i = disk.getInode(folderStack.top()); // second inode is root inode
+
+    if (((i.i_mode & 0xF000) == 0x4000) || (i.i_mode & 0xF000) == 0x8000)
+    {
+        unsigned int offset = 0;
+        do
+        {
+            directory dirEntry;
+            img.seekg((i.i_block[0] * disk.getMiscInfo().block_size) + offset);
+            img.read(reinterpret_cast<char *>(&dirEntry), 8);
+            img.read(reinterpret_cast<char *>(&dirEntry.name), dirEntry.name_len);
+            offset += dirEntry.rec_len;
+            if (dirEntry.inode == 0)
+                break;
+            for (int k = 0; k < dirEntry.name_len; k++)
+            {
+                std::cout << dirEntry.name[k];
+            }
+            if (dirEntry.file_type == 2)
+                std::cout<<"/";            
+            if (dirEntry.name_len != 0)
+                std::cout << std::endl;
+        } while (offset < disk.getMiscInfo().block_size);
+    }else
+    {
+        std::cout<<"ERR: inode at top of stack is not a directory!"<<std::endl;
+    }
+    
 }

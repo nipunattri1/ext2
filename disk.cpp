@@ -56,17 +56,3 @@ void Disk::setinodeTable(std::ifstream &img)
     }
 }
 
-void Disk::setInodeBitMap(std::ifstream &img)
-{
-    for (auto i : all_gdt)
-    {
-        img.seekg(i.block_bitmap);
-        char c;
-        while (img.get(c))
-        {
-            std::bitset<8> bits = static_cast<std::bitset<8>>(c);
-            
-        }
-        
-    }
-}

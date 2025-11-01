@@ -8,6 +8,7 @@ class Disk
 {
     super_block sb;
     misc_info miscInfo;
+    unsigned int filled_inode_count;
     std::vector<block_group_decriptor> all_gdt;
     std::vector<inode> inodeTableList;
     struct IMode
@@ -55,10 +56,13 @@ public:
     {
         return all_gdt[index];
     }
+    inode getInode(unsigned int n)
+    {
+        return inodeTableList[n-1];
+    }
     void setSuperBlock(std::ifstream &img);
     void setGDT(std::ifstream &img);
     void setinodeTable(std::ifstream &img);
-    void setInodeBitMap(std::ifstream &img);
 };
 
 #endif

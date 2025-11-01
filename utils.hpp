@@ -1,9 +1,11 @@
 #ifndef UTILS_H
 #define UTILS_H
 #include "disk.hpp"
+#include <stack>
 class DiskUtil
 {
     Disk disk;
+    std::stack<unsigned int> folderStack;
 
 private:
     void print_gdt_entry(const block_group_decriptor &bgd, uint32_t group_id);
@@ -24,6 +26,8 @@ public:
             print_gdt_entry(disk.getBGD(i), i);
         }
     }
+
+    void ls(std::ifstream &img);
 };
 
 #endif
