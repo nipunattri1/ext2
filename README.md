@@ -1,4 +1,12 @@
 # EXT2FS reader
+This project focuses on the low-level implementation of the filesystem and file management, specifically targeting the ext2 filesystem, which is popular on Linux.
+
+## Currentlly capable of
+- **Read Core Structures**: Parse the filesystem image to extract and display the contents of the superblock and block group descriptors.
+- **Traverse Directories**: Starting from the root directory, your program must be able to recursively traverse all subdirectories, printing the complete layout of the filesystem.
+
+
+
 ## Run 
 ```bash
 g++ *.cpp -o main && ./main <img_file>
