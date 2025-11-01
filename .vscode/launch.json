@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/main.out",
             "args": [
-                "disk1.img"
+                "disk2.img"
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

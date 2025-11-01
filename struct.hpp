@@ -1,6 +1,8 @@
 #ifndef STRUCT_H
 #define STRUCT_H
 #include <cstdint>
+#pragma pack(push, 1)
+
 struct ext_super_block
 {
     uint32_t first_inode;
@@ -21,14 +23,20 @@ struct ext_super_block
     uint32_t jourrnal_device;
     uint32_t inode_list_head;
 };
+#pragma pack(pop)
+#pragma pack(push, 1)
 
-struct misc_info{
+struct misc_info
+{
     unsigned int block_size;
     unsigned int frag_size;
     unsigned int group_count;
     unsigned int root_inode;
-
 };
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+
 struct super_block
 {
     uint32_t inode_count;
@@ -58,7 +66,9 @@ struct super_block
     uint16_t group_res;
     ext_super_block ext_sb;
 };
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 
 struct block_group_decriptor
 {
@@ -71,6 +81,10 @@ struct block_group_decriptor
     uint16_t pad;
     uint32_t extra[3];
 };
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+
 struct i_osd2
 {
     uint8_t h_i_frag;
@@ -79,8 +93,9 @@ struct i_osd2
     uint16_t h_i_uid_high;
     uint16_t h_i_gid_high;
     uint32_t h_i_author;
-
 };
+#pragma pack(pop)
+
 #pragma pack(push, 1)
 struct inode
 {
@@ -104,6 +119,7 @@ struct inode
     i_osd2 i_osd2_val;
 };
 #pragma pack(pop)
+#pragma pack(push, 1)
 struct directory
 {
     uint32_t inode;
@@ -112,8 +128,6 @@ struct directory
     uint8_t file_type;
     char name[256];
 };
-
-
-
+#pragma pack(pop)
 
 #endif

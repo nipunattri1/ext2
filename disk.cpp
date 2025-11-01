@@ -41,7 +41,7 @@ void Disk::setinodeTable(std::ifstream &img)
     {
 
         unsigned int group = (counter) / sb.group_inode_count;
-        unsigned int seek = miscInfo.block_size * all_gdt[group].addr_inode_table + counter * sb.ext_sb.inode_size;
+        unsigned int seek = miscInfo.block_size * all_gdt[group].addr_inode_table + (counter%sb.group_inode_count) * sb.ext_sb.inode_size;
         img.seekg(seek, std::ios::beg);
         inode inodeVal;
         img.read(reinterpret_cast<char *>(&inodeVal), sizeof(inode));

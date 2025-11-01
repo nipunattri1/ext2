@@ -25,7 +25,7 @@ class Disk
         } file;
         enum
         {
-            EXT2_S_ISUID = 0x0800l,
+            EXT2_S_ISUID = 0x0800,
             EXT2_S_ISGID = 0x0400,
             EXT2_S_ISVTX = 0x0200
         } process;

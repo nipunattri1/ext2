@@ -5,7 +5,7 @@
 class DiskUtil
 {
     Disk disk;
-    unsigned int curretnInode = 2;
+    uint64_t curretnInode = 2;
     std::vector<directory> dirEntries;
 
 private:

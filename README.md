@@ -34,8 +34,6 @@ DiskUtil is for misc functions & other commands on the disk.
 
 There is a file `struct.hpp` which contains all strcuts of the program
 
-## Issues with the program
-while cd into certain folders , i_mode is being affected (not sure of the reason atp)
 ## some screen shots of the software
 ![ss1](ss1.png)
 ![ss2](ss2.png)
