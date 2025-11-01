@@ -5,7 +5,7 @@
 class DiskUtil
 {
     Disk disk;
-    std::stack<unsigned int> folderStack;
+    unsigned int curretnInode = 2;
     std::vector<directory> dirEntries;
 
 private:
@@ -30,6 +30,7 @@ public:
     }
 
     void ls(std::ifstream &img);
+    void cd(std::ifstream &img, std::string dir);
 };
 
 #endif

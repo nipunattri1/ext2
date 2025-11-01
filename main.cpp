@@ -1,7 +1,7 @@
 #include "disk.hpp"
 #include "struct.hpp"
 #include "utils.hpp"
-
+#include <sstream>
 int main(int argc, char const *argv[])
 {
 
@@ -22,7 +22,6 @@ int main(int argc, char const *argv[])
     disk.setSuperBlock(img);
     disk.setGDT(img);
     disk.setinodeTable(img);
-    
 
     // setup an util class instance
     DiskUtil util;
@@ -31,19 +30,38 @@ int main(int argc, char const *argv[])
     std::string in;
     do
     {
-        std::cout<<"\n> ";
-        std::cin>>in;
-        if (in == "ls")
+        std::cout << "\n> ";
+        // std::cin >> in;
+        std::getline(std::cin, in);
+        std::vector<std::string> args;
+        std::stringstream ss(in);
+        std::string arg;
+
+        while (ss >> arg)
+        {
+            args.push_back(arg);
+        }
+
+        if (args[0] == "ls")
         {
             util.ls(img);
         }
-        else if (in == "info")
+        else if (args[0] == "info")
         {
-            std::cout<<"===Printing Info==="<<std::endl;
             util.printSuperBlock(img);
             util.printGDTEntries();
-        } else if (in != "exit"){
-            std::cout<<"Unknown command " << in <<std::endl;
+        }
+        else if (args[0] == "cd")
+        {
+            if (args.size() != 2)
+                std::cout << "Invalid Argument format" << std::endl;
+            else
+                util.cd(img, args[1]);
+        }
+
+        else if (in != "exit")
+        {
+            std::cout << "Unknown command " << in << std::endl;
         }
 
     } while (in != "exit");

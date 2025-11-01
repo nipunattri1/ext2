@@ -81,7 +81,7 @@ struct i_osd2
     uint32_t h_i_author;
 
 };
-
+#pragma pack(push, 1)
 struct inode
 {
     uint16_t i_mode;
@@ -103,7 +103,7 @@ struct inode
     uint32_t i_faddr;
     i_osd2 i_osd2_val;
 };
-
+#pragma pack(pop)
 struct directory
 {
     uint32_t inode;

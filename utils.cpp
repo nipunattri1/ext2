@@ -111,11 +111,9 @@ void DiskUtil::printArr(uint8_t arr[], int size)
 
 void DiskUtil::setDirFiles(std::ifstream &img)
 {
-    if (folderStack.empty())
-        folderStack.push(2); // if folder stack is empty then make to root inode
 
-    inode i = disk.getInode(folderStack.top()); // second inode is root inode
-
+    inode i = disk.getInode(curretnInode); 
+    dirEntries.clear();
     if (((i.i_mode & 0xF000) == 0x4000) || (i.i_mode & 0xF000) == 0x8000)
     {
         unsigned int offset = 0;
@@ -126,7 +124,7 @@ void DiskUtil::setDirFiles(std::ifstream &img)
             img.read(reinterpret_cast<char *>(&dirEntry), 8);
             img.read(reinterpret_cast<char *>(&dirEntry.name), dirEntry.name_len);
             offset += dirEntry.rec_len;
-            if (dirEntry.inode == 0)
+            if (dirEntry.inode == 0 )
                 break;
 
             dirEntries.insert(dirEntries.end(), dirEntry);
@@ -154,4 +152,45 @@ void DiskUtil::ls(std::ifstream &img)
         if (i.name_len != 0)
             std::cout << std::endl;
     }
+}
+
+void DiskUtil::cd(std::ifstream &img, std::string dir)
+{
+    bool found = false;
+    if (dir == "/")
+    {
+        found = true;
+        curretnInode = 2;
+    }
+    setDirFiles(img);
+    
+    for (auto i : dirEntries)
+    {
+        if(i.file_type == 2 && i.name_len == dir.length()){
+            bool isEqual = true;
+            for (int j = 0; j < i.name_len; j++)
+            {
+                isEqual = (i.name[j] == dir[j]);
+                if (!isEqual)
+                    break;
+                
+            }
+            if (isEqual)
+            {
+                curretnInode = i.inode;
+                found = true;
+                break;
+            }
+            
+            
+            
+        }
+    }
+    if (!found)
+    {
+        std::cout<<"No such directory "<<dir<<std::endl;
+    }
+    
+    // setDirFiles(img);
+
 }
