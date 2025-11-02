@@ -188,8 +188,8 @@ void DiskUtil::cd(std::ifstream &img, std::string dir)
         std::cout << "No such directory " << dir << std::endl;
     }
 
-    // setDirFiles(img);
 }
+
 std::vector<char> DiskUtil::getDirectBlockVal(std::ifstream &img, uint32_t blockAddr)
 {
     std::vector<char> out;
@@ -233,11 +233,10 @@ void DiskUtil::cat(std::ifstream &img, std::string file)
                             img.read(reinterpret_cast<char *>(&out[bytesRead]), toRead);
                             if (img.gcount() != toRead)
                             {
-                                std::cout<<"Err Reading block "<< block_counter +1<<std::endl;
+                                std::cout << "Err Reading block " << block_counter + 1 << std::endl;
                                 break;
                             }
                             bytesRead += toRead;
-                            
                         }
                     }
                     for (uint64_t idx = 0; idx < fileInode.i_size; idx++)

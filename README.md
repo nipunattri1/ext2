@@ -25,6 +25,7 @@ there is few commands written till now:
 ### Features implemented till now
 - Reading general info of the FS.
 - traversing through the file-structure.
+- outputing the contents of files.
 
 ### General Wokring of program
 The program is divided into 2 major classes, Disk and DiskUtils...
@@ -35,8 +36,8 @@ DiskUtil is for misc functions & other commands on the disk.
 There is a file `struct.hpp` which contains all strcuts of the program
 
 ## some screen shots of the software
-![ss1](ss1.png)
-![ss2](ss2.png)
-![ss3](ss3.png)
+![ss1](img/ss1.png)
+![ss2](img/ss2.png)
+![ss3](img/ss3.png)
 
-![ss4](ss4.png)
+![ss4](img/ss4.png)
