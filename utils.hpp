@@ -12,6 +12,7 @@ private:
     void print_gdt_entry(const block_group_decriptor &bgd, uint32_t group_id);
     void printArr(uint8_t arr[], int size);
     void setDirFiles(std::ifstream &img);
+    std::vector<char> getDirectBlockVal(std::ifstream &img,uint32_t blockAddr);
 
 
 public:
@@ -31,6 +32,7 @@ public:
 
     void ls(std::ifstream &img);
     void cd(std::ifstream &img, std::string dir);
+    void cat(std::ifstream &img, std::string file);
 };
 
 #endif

@@ -18,8 +18,8 @@ there is few commands written till now:
 - info (show info, similar to dumpe2fs)
 - ls (show info about current directory)
 - cd <dir_name> (change directory to <dir_name> )
-### Commands to add (yet)
 - cat (read contents of files)
+### Commands to add (yet)
 - nano (ig idk... maybe pass data into an text editor)
 
 ### Features implemented till now
@@ -38,3 +38,5 @@ There is a file `struct.hpp` which contains all strcuts of the program
 ![ss1](ss1.png)
 ![ss2](ss2.png)
 ![ss3](ss3.png)
+
+![ss4](ss4.png)

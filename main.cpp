@@ -31,7 +31,6 @@ int main(int argc, char const *argv[])
     do
     {
         std::cout << "\n> ";
-        // std::cin >> in;
         std::getline(std::cin, in);
         std::vector<std::string> args;
         std::stringstream ss(in);
@@ -57,6 +56,13 @@ int main(int argc, char const *argv[])
                 std::cout << "Invalid Argument format" << std::endl;
             else
                 util.cd(img, args[1]);
+        }
+        else if (args[0] == "cat")
+        {
+            if (args.size() != 2)
+                std::cout << "Invalid Argument format" << std::endl;
+            else
+                util.cat(img, args[1]);
         }
 
         else if (in != "exit")

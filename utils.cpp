@@ -190,3 +190,69 @@ void DiskUtil::cd(std::ifstream &img, std::string dir)
 
     // setDirFiles(img);
 }
+std::vector<char> DiskUtil::getDirectBlockVal(std::ifstream &img, uint32_t blockAddr)
+{
+    std::vector<char> out;
+    out.resize(disk.getMiscInfo().block_size);
+    img.seekg(blockAddr * disk.getMiscInfo().block_size);
+    img.read(reinterpret_cast<char *>(&out), disk.getMiscInfo().block_size);
+    return out;
+}
+
+void DiskUtil::cat(std::ifstream &img, std::string file)
+{
+    setDirFiles(img);
+    for (auto dirEntry : dirEntries)
+    {
+        if (dirEntry.name_len == file.length())
+        {
+            bool isEqual = true;
+            for (int j = 0; j < dirEntry.name_len; j++)
+            {
+                isEqual = (dirEntry.name[j] == file[j]);
+                if (!isEqual)
+                    break;
+            }
+            if (isEqual)
+            {
+                if (dirEntry.file_type == 1)
+                {
+                    inode fileInode = disk.getInode(dirEntry.inode);
+                    float blockCount = fileInode.i_size / disk.getMiscInfo().block_size;
+                    char out[fileInode.i_size];
+
+                    uint32_t bytesRead = 0;
+                    for (int8_t block_counter = 0; block_counter < 12; block_counter++)
+                    {
+                        uint32_t toRead = std::min(fileInode.i_size - bytesRead, disk.getMiscInfo().block_size);
+
+                        if (fileInode.i_block[block_counter] != 0)
+                        {
+
+                            img.seekg(fileInode.i_block[block_counter] * disk.getMiscInfo().block_size);
+                            img.read(reinterpret_cast<char *>(&out[bytesRead]), toRead);
+                            if (img.gcount() != toRead)
+                            {
+                                std::cout<<"Err Reading block "<< block_counter +1<<std::endl;
+                                break;
+                            }
+                            bytesRead += toRead;
+                            
+                        }
+                    }
+                    for (uint64_t idx = 0; idx < fileInode.i_size; idx++)
+                    {
+                        std::cout << out[idx];
+                    }
+                    std::cout << std::endl;
+                }
+                else
+                {
+                    std::cout << "ERR: given input " << file << " is not a Regular File" << std::endl;
+                }
+
+                break;
+            }
+        }
+    }
+}
