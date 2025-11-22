@@ -11,8 +11,10 @@ class DiskUtil
 private:
     void print_gdt_entry(const block_group_decriptor &bgd, uint32_t group_id);
     void printArr(uint8_t arr[], int size);
-    void setDirFiles(std::ifstream &img);
-    std::vector<char> getDirectBlockVal(std::ifstream &img,uint32_t blockAddr);
+    void setDirFiles(std::fstream &img);
+    // std::vector<char> getDirectBlockVal(std::fstream &img,uint32_t blockAddr);
+    std::vector<uint32_t> getAllAllocatedBlocks(std::fstream &img, const inode &fileInode);
+    void setBitMap(uint32_t block_id, bool val, std::fstream &img);
 
 
 public:
@@ -20,7 +22,7 @@ public:
     {
         disk = diskIn;
     }
-    void printSuperBlock(std::ifstream &img);
+    void printSuperBlock(std::fstream &img);
 
     void printGDTEntries()
     {
@@ -30,10 +32,10 @@ public:
         }
     }
 
-    void ls(std::ifstream &img);
-    void cd(std::ifstream &img, std::string dir);
-    void cat(std::ifstream &img, std::string file);
-    void write(std::ifstream &img,std::string content, std::string file);
+    void ls(std::fstream &img);
+    void cd(std::fstream &img, std::string dir);
+    void cat(std::fstream &img, std::string file);
+    void write(std::fstream &img, std::string content, std::string file);
 };
 
 #endif

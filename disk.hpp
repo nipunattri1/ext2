@@ -9,7 +9,7 @@ class Disk
 private:
     super_block sb;
     misc_info miscInfo;
-    unsigned int filled_inode_count;
+    // unsigned int filled_inode_count;
     std::vector<block_group_decriptor> all_gdt;
     std::vector<inode> inodeTableList;
     struct IMode
@@ -45,27 +45,15 @@ private:
     };
 
 public:
-    std::vector<uint8_t> getBitMap(std::ifstream &img, int group_index);
-    std::vector<uint32_t> getFreeBlocks(std::ifstream &img, int n);
-    super_block getSuperBlock()
-    {
-        return sb;
-    }
-    misc_info getMiscInfo()
-    {
-        return miscInfo;
-    }
-    block_group_decriptor getBGD(unsigned int index)
-    {
-        return all_gdt[index];
-    }
-    inode getInode(unsigned int n)
-    {
-        return inodeTableList[n - 1];
-    }
-    void setSuperBlock(std::ifstream &img);
-    void setGDT(std::ifstream &img);
-    void setinodeTable(std::ifstream &img);
+    std::vector<uint8_t> getBitMap(std::fstream &img, int group_index);
+    std::vector<uint32_t> getFreeBlocks(std::fstream &img, int n);
+    void setSuperBlock(std::fstream &img);
+    void setGDT(std::fstream &img);
+    void setinodeTable(std::fstream &img);
+    super_block getSuperBlock() { return sb; }
+    misc_info getMiscInfo() { return miscInfo; }
+    block_group_decriptor getBGD(unsigned int index) { return all_gdt[index]; }
+    inode getInode(unsigned int n) { return inodeTableList[n - 1]; }
 };
 
 #endif

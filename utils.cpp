@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <cmath>
 #include <stack>
+#include <bitset>
 
 void DiskUtil::print_gdt_entry(const block_group_decriptor &bgd, uint32_t group_id)
 {
@@ -27,7 +28,7 @@ void DiskUtil::print_gdt_entry(const block_group_decriptor &bgd, uint32_t group_
     std::cout << oss.str();
 }
 
-void DiskUtil::printSuperBlock(std::ifstream &img)
+void DiskUtil::printSuperBlock(std::fstream &img)
 {
     super_block sb = disk.getSuperBlock();
     unsigned int block_size = pow(2, sb.block_size + 10);
@@ -109,7 +110,7 @@ void DiskUtil::printArr(uint8_t arr[], int size)
     std::cout << std::endl;
 }
 
-void DiskUtil::setDirFiles(std::ifstream &img)
+void DiskUtil::setDirFiles(std::fstream &img)
 {
 
     inode i = disk.getInode(curretnInode);
@@ -137,7 +138,7 @@ void DiskUtil::setDirFiles(std::ifstream &img)
     }
 }
 
-void DiskUtil::ls(std::ifstream &img)
+void DiskUtil::ls(std::fstream &img)
 {
 
     setDirFiles(img);
@@ -154,7 +155,7 @@ void DiskUtil::ls(std::ifstream &img)
     }
 }
 
-void DiskUtil::cd(std::ifstream &img, std::string dir)
+void DiskUtil::cd(std::fstream &img, std::string dir)
 {
     bool found = false;
     if (dir == "/")
@@ -189,16 +190,7 @@ void DiskUtil::cd(std::ifstream &img, std::string dir)
     }
 }
 
-std::vector<char> DiskUtil::getDirectBlockVal(std::ifstream &img, uint32_t blockAddr)
-{
-    std::vector<char> out;
-    out.resize(disk.getMiscInfo().block_size);
-    img.seekg(blockAddr * disk.getMiscInfo().block_size);
-    img.read(reinterpret_cast<char *>(&out), disk.getMiscInfo().block_size);
-    return out;
-}
-
-void DiskUtil::cat(std::ifstream &img, std::string file)
+void DiskUtil::cat(std::fstream &img, std::string file)
 {
     setDirFiles(img);
     bool found = false;
@@ -215,7 +207,7 @@ void DiskUtil::cat(std::ifstream &img, std::string file)
                 if (!isEqual)
                     break;
             }
-            
+
             if (isEqual)
             {
                 found = true;
@@ -319,7 +311,6 @@ void DiskUtil::cat(std::ifstream &img, std::string file)
                                 }
                             }
                         }
-
                     }
                     // Output content
                     for (char c : out)
@@ -335,14 +326,35 @@ void DiskUtil::cat(std::ifstream &img, std::string file)
                 }
             }
         }
-
     }
     if (!found)
     {
         std::cout << "No such file " << file << std::endl;
     }
 }
-void DiskUtil::write(std::ifstream &img, std::string content, std::string file)
+
+void DiskUtil::setBitMap(uint32_t block_id, bool val, std::fstream &img)
+{
+    /*
+    Adjusted ID=block_id−FirstDataBlock
+    Group Index=Adjusted ID/BlocksPerGroup
+    Local Index=Adjusted ID%BlocksPerGroup
+    */
+    uint32_t adjusted_id = block_id - disk.getSuperBlock().first_data_block;
+    uint32_t group_index = adjusted_id / disk.getSuperBlock().group_block_count;
+    uint32_t local_index = adjusted_id % disk.getSuperBlock().group_block_count;
+
+    uint32_t bit_loc = disk.getBGD(group_index).block_bitmap + local_index;
+    std::bitset<8> prev;
+    img.seekp(bit_loc);
+    img.seekg(bit_loc);
+    img.read(reinterpret_cast<char *>(&prev), 1);
+
+    prev |= 01111111;
+    img.write(reinterpret_cast<char *>(&prev), 1);
+}
+
+void DiskUtil::write(std::fstream &img, std::string content, std::string file)
 {
     if (content[0] != '"' && content[content.length() - 1] != '"' && content.length() >= 2)
     {
@@ -369,20 +381,164 @@ void DiskUtil::write(std::ifstream &img, std::string content, std::string file)
                     }
                     else
                     {
-                        // TODO update bitmap
                         // TODO update inode
                         // TODO update file itself
                         //  dirEntry.inode
                         inode fileInode = disk.getInode(dirEntry.inode);
                         uint32_t prevSize = fileInode.i_size;
                         fileInode.i_size = content.length() - 2; // content of type "<text>" with " included
+                        // TODO free the blocks first
+                        std::vector<uint32_t> allocBlocks = getAllAllocatedBlocks(img, fileInode);
+                        for (auto block : allocBlocks)
+                            setBitMap(block, false, img);
 
-                        // std::vector<uint8_t> bitmap = disk.getBitMap(img, 0);
-                        auto freebits = disk.getFreeBlocks(img, 14);
-                        uint8_t prevblockCount = disk.getMiscInfo().block_size;
+                        // TODO update bitmap
+                        // calculate the number of  blocks requried to allocate the storage
+                        uint16_t blockSize = disk.getMiscInfo().block_size;
+                        uint32_t dataBlocks = (content.length() + blockSize - 3) / blockSize;
+
+                        uint32_t totalBlocks = dataBlocks;
+
+                        // Constants for ext2
+                        const uint32_t PTRS_PER_BLOCK = blockSize / 4; // usually 1024/4 = 256
+                        const uint32_t DIRECT_COUNT = 12;
+
+                        // Capacity thresholds (in number of data blocks)
+                        const uint32_t SINGLE_CAPACITY = PTRS_PER_BLOCK;
+                        const uint32_t DOUBLE_CAPACITY = PTRS_PER_BLOCK * PTRS_PER_BLOCK;
+                        const uint32_t TRIPLE_CAPACITY = PTRS_PER_BLOCK * PTRS_PER_BLOCK * PTRS_PER_BLOCK;
+
+                        if (dataBlocks > DIRECT_COUNT)
+                        {
+                            uint32_t remaining = dataBlocks - DIRECT_COUNT;
+                            totalBlocks += 1;
+
+                            if (remaining > SINGLE_CAPACITY)
+                            {
+                                remaining -= SINGLE_CAPACITY;
+
+                                totalBlocks += 1;
+                                uint32_t doubleIndirectPtrsNeeded = (remaining + PTRS_PER_BLOCK - 1) / PTRS_PER_BLOCK;
+
+                                if (doubleIndirectPtrsNeeded > PTRS_PER_BLOCK)
+                                {
+                                    doubleIndirectPtrsNeeded = PTRS_PER_BLOCK;
+                                }
+
+                                totalBlocks += doubleIndirectPtrsNeeded;
+
+                                if (remaining > DOUBLE_CAPACITY)
+                                {
+                                    remaining -= DOUBLE_CAPACITY;
+                                    totalBlocks += 1;
+
+                                    uint32_t triple_L2_Needed = (remaining + DOUBLE_CAPACITY - 1) / DOUBLE_CAPACITY;
+                                    totalBlocks += triple_L2_Needed;
+
+                                    uint32_t triple_L1_Needed = (remaining + PTRS_PER_BLOCK - 1) / PTRS_PER_BLOCK;
+                                    totalBlocks += triple_L1_Needed;
+                                }
+                            }
+                        }
+
+                        auto freebits = disk.getFreeBlocks(img, totalBlocks);
                     }
                 }
             }
         }
     }
+}
+std::vector<uint32_t> DiskUtil::getAllAllocatedBlocks(std::fstream &img, const inode &fileInode)
+{
+    std::vector<uint32_t> allocated_blocks;
+    uint32_t blockSize = disk.getMiscInfo().block_size;
+    uint32_t ptrsPerBlock = blockSize / 4; // 4 bytes per pointer
+
+    // Helper to read a block of pointers from disk
+    auto loadPtrBlock = [&](uint32_t blockNum) -> std::vector<uint32_t>
+    {
+        std::vector<uint32_t> ptrs(ptrsPerBlock);
+        img.seekg((uint64_t)blockNum * blockSize);
+        img.read(reinterpret_cast<char *>(ptrs.data()), blockSize);
+        return ptrs;
+    };
+
+    // Direct Blocks (0-11)
+    for (int i = 0; i < 12; i++)
+    {
+        if (fileInode.i_block[i] != 0)
+        {
+            allocated_blocks.push_back(fileInode.i_block[i]);
+        }
+    }
+
+    // Singly Indirect (12)
+    uint32_t single_block = fileInode.i_block[12];
+    if (single_block != 0)
+    {
+        allocated_blocks.push_back(single_block);
+
+        std::vector<uint32_t> ptrs = loadPtrBlock(single_block);
+        for (uint32_t ptr : ptrs)
+        {
+            if (ptr != 0)
+                allocated_blocks.push_back(ptr);
+        }
+    }
+
+    //   Triple
+    uint32_t double_block = fileInode.i_block[13];
+    if (double_block != 0)
+    {
+        allocated_blocks.push_back(double_block);
+
+        std::vector<uint32_t> l1_ptrs = loadPtrBlock(double_block);
+        for (uint32_t l1_ptr : l1_ptrs)
+        {
+            if (l1_ptr != 0)
+            {
+                allocated_blocks.push_back(l1_ptr);
+
+                std::vector<uint32_t> data_ptrs = loadPtrBlock(l1_ptr);
+                for (uint32_t data_ptr : data_ptrs)
+                {
+                    if (data_ptr != 0)
+                        allocated_blocks.push_back(data_ptr);
+                }
+            }
+        }
+    }
+
+    // Triply Indirect (14)
+    uint32_t triple_block = fileInode.i_block[14];
+    if (triple_block != 0)
+    {
+        allocated_blocks.push_back(triple_block);
+
+        std::vector<uint32_t> l2_ptrs = loadPtrBlock(triple_block);
+        for (uint32_t l2_ptr : l2_ptrs)
+        {
+            if (l2_ptr != 0)
+            {
+                allocated_blocks.push_back(l2_ptr);
+
+                std::vector<uint32_t> l1_ptrs = loadPtrBlock(l2_ptr);
+                for (uint32_t l1_ptr : l1_ptrs)
+                {
+                    if (l1_ptr != 0)
+                    {
+                        allocated_blocks.push_back(l1_ptr);
+                        std::vector<uint32_t> data_ptrs = loadPtrBlock(l1_ptr);
+                        for (uint32_t data_ptr : data_ptrs)
+                        {
+                            if (data_ptr != 0)
+                                allocated_blocks.push_back(data_ptr);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return allocated_blocks;
 }

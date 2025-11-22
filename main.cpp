@@ -2,7 +2,9 @@
 #include "struct.hpp"
 #include "utils.hpp"
 #include <sstream>
-//  TODO: update img value refernce to disk's own img
+
+
+// TODO Pass image path onto disk class and let the class handlle the image opeing precedure.
 int main(int argc, char const *argv[])
 {
 
@@ -12,7 +14,7 @@ int main(int argc, char const *argv[])
         return 1;
     }
     // read inputed file (img)
-    std::ifstream img(argv[1], std::ios::binary);
+    std::fstream img(argv[1], std::ios::binary);
     if (!img)
     {
         std::cerr << "ERR: Couldn't Open the file" << std::endl;

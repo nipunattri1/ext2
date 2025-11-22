@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <bitset>
 
-void Disk::setSuperBlock(std::ifstream &img)
+void Disk::setSuperBlock(std::fstream &img)
 {
     img.seekg(1024);
     img.read(reinterpret_cast<char *>(&sb), sizeof(sb));
@@ -18,7 +18,7 @@ void Disk::setSuperBlock(std::ifstream &img)
         miscInfo.group_count++;
 }
 
-void Disk::setGDT(std::ifstream &img)
+void Disk::setGDT(std::fstream &img)
 {
     img.seekg(2048);
     all_gdt.resize(miscInfo.group_count);
@@ -31,7 +31,7 @@ void Disk::setGDT(std::ifstream &img)
     }
 }
 
-void Disk::setinodeTable(std::ifstream &img)
+void Disk::setinodeTable(std::fstream &img)
 {
 
     inodeTableList.resize(sb.inode_count);
@@ -56,56 +56,84 @@ void Disk::setinodeTable(std::ifstream &img)
     }
 }
 
-std::vector<uint8_t> Disk::getBitMap(std::ifstream &img, int group_index)
+void DiskUtil::setBitMap(uint32_t block_id, bool val, std::fstream &img)
 {
-    if (group_index < 0 || group_index >= all_gdt.size()) {
+    /*
+    Adjusted ID=block_id−FirstDataBlock
+    Group Index=Adjusted ID/BlocksPerGroup
+    Local Index=Adjusted ID%BlocksPerGroup
+    */
+   uint32_t adjusted_id = block_id - sb.first_data_block;
+   uint32_t group_index = adjusted_id/sb.group_block_count;
+   uint32_t local_index = adjusted_id%sb.group_block_count;
+
+   uint32_t bit_loc =  getBGD(group_index).block_bitmap + local_index;
+   std::bitset<8> prev;
+   img.seekp(bit_loc);
+   img.seekg(bit_loc);
+   img.read(reinterpret_cast<char *> (&prev), 1);
+   
+   prev |= 01111111;
+   img.write(reinterpret_cast<char *>(&prev), 1);
+
+
+}
+
+std::vector<uint8_t> Disk::getBitMap(std::fstream &img, int group_index)
+{
+    if (group_index < 0 || group_index >= all_gdt.size())
+    {
         throw std::out_of_range("Invalid block group index");
     }
 
     std::vector<uint8_t> bitmap(miscInfo.block_size);
-    
+
     uint64_t offset = (uint64_t)all_gdt[group_index].block_bitmap * miscInfo.block_size;
-    
+
     img.seekg(offset);
     img.read(reinterpret_cast<char *>(bitmap.data()), miscInfo.block_size);
-    
+
     return bitmap;
 }
 
-std::vector<uint32_t> Disk::getFreeBlocks(std::ifstream &img, int n)
+std::vector<uint32_t> Disk::getFreeBlocks(std::fstream &img, int n)
 {
     std::vector<uint32_t> found_blocks;
-    
-    for (size_t group_idx = 0; group_idx < all_gdt.size(); ++group_idx) 
+
+    for (size_t group_idx = 0; group_idx < all_gdt.size(); ++group_idx)
     {
-        if (found_blocks.size() == n) break;
+        if (found_blocks.size() == n)
+            break;
         std::vector<uint8_t> bitmap = getBitMap(img, group_idx);
 
-        for (size_t byte_idx = 0; byte_idx < bitmap.size(); ++byte_idx) 
+        for (size_t byte_idx = 0; byte_idx < bitmap.size(); ++byte_idx)
         {
-            if (bitmap[byte_idx] == 0xFF) continue;
-            for (int bit_idx = 0; bit_idx < 8; ++bit_idx) 
+            if (bitmap[byte_idx] == 0xFF)
+                continue;
+            for (int bit_idx = 0; bit_idx < 8; ++bit_idx)
             {
-                if (!((bitmap[byte_idx] >> bit_idx) & 1)) 
+                if (!((bitmap[byte_idx] >> bit_idx) & 1))
                 {
                     uint32_t block_in_group = (byte_idx * 8) + bit_idx;
 
-                    if (block_in_group >= sb.group_block_count) {
-                        break; 
+                    if (block_in_group >= sb.group_block_count)
+                    {
+                        break;
                     }
 
-                    uint32_t global_block = sb.first_data_block + 
-                                          (group_idx * sb.group_block_count) + 
-                                          block_in_group;
+                    uint32_t global_block = sb.first_data_block +
+                                            (group_idx * sb.group_block_count) +
+                                            block_in_group;
 
                     found_blocks.push_back(global_block);
 
-                    if (found_blocks.size() == n) {
+                    if (found_blocks.size() == n)
+                    {
                         return found_blocks;
                     }
                 }
             }
         }
     }
-    return found_blocks; 
+    return found_blocks;
 }
