@@ -33,6 +33,7 @@ public:
     void ls(std::ifstream &img);
     void cd(std::ifstream &img, std::string dir);
     void cat(std::ifstream &img, std::string file);
+    void write(std::ifstream &img,std::string content, std::string file);
 };
 
 #endif

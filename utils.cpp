@@ -73,14 +73,14 @@ void DiskUtil::printSuperBlock(std::ifstream &img)
     std::cout << "opt_feat: " << sb.ext_sb.opt_feat << "\n";
     std::cout << "req_feat: " << sb.ext_sb.req_feat << "\n";
     std::cout << "read_only_feat: " << sb.ext_sb.read_only_feat << "\n";
-    std::cout << "file_sys_id: "; // TODO
+    std::cout << "file_sys_id: ";
     // printArr(ex_sb.file_sys_id, 16);
     for (int i = 0; i < 16; ++i)
     {
         std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(sb.ext_sb.file_sys_id[i]);
     }
     std::cout << std::dec << "\n";
-    std::cout << "vol_name: "; // TODO
+    std::cout << "vol_name: ";
     printArr(sb.ext_sb.vol_name, 16);
     std::cout << "vol_path: ";
     printArr(sb.ext_sb.vol_path, 64);
@@ -187,7 +187,6 @@ void DiskUtil::cd(std::ifstream &img, std::string dir)
     {
         std::cout << "No such directory " << dir << std::endl;
     }
-
 }
 
 std::vector<char> DiskUtil::getDirectBlockVal(std::ifstream &img, uint32_t blockAddr)
@@ -202,55 +201,187 @@ std::vector<char> DiskUtil::getDirectBlockVal(std::ifstream &img, uint32_t block
 void DiskUtil::cat(std::ifstream &img, std::string file)
 {
     setDirFiles(img);
+    bool found = false;
+
     for (auto dirEntry : dirEntries)
     {
+        // Check name length first
         if (dirEntry.name_len == file.length())
         {
-            bool isEqual = true;
+            bool isEqual = true; // if this the same dir entry
             for (int j = 0; j < dirEntry.name_len; j++)
             {
                 isEqual = (dirEntry.name[j] == file[j]);
                 if (!isEqual)
                     break;
             }
+            
             if (isEqual)
             {
-                if (dirEntry.file_type == 1)
+                found = true;
+                if (dirEntry.file_type == 1) // Check if Regular File
                 {
                     inode fileInode = disk.getInode(dirEntry.inode);
-                    float blockCount = fileInode.i_size / disk.getMiscInfo().block_size;
-                    char out[fileInode.i_size];
+                    uint32_t blockSize = disk.getMiscInfo().block_size;
 
+                    std::vector<char> out(fileInode.i_size);
                     uint32_t bytesRead = 0;
-                    for (int8_t block_counter = 0; block_counter < 12; block_counter++)
+                    uint32_t ptrsPerBlock = blockSize / sizeof(uint32_t);
+
+                    // Helper Lambda to read a single data block into the buffer
+                    auto readDataBlock = [&](uint32_t blockNum)
                     {
-                        uint32_t toRead = std::min(fileInode.i_size - bytesRead, disk.getMiscInfo().block_size);
+                        if (blockNum == 0)
+                            return;
+                        if (bytesRead >= fileInode.i_size)
+                            return; // Done
 
-                        if (fileInode.i_block[block_counter] != 0)
+                        uint32_t toRead = std::min((uint32_t)(fileInode.i_size - bytesRead), blockSize);
+
+                        img.seekg((uint64_t)blockNum * blockSize);
+                        img.read(&out[bytesRead], toRead);
+
+                        bytesRead += toRead;
+                    };
+
+                    // Helper Lambda to load a block of pointers
+                    auto loadPtrBlock = [&](uint32_t blockNum) -> std::vector<uint32_t>
+                    {
+                        std::vector<uint32_t> ptrs(ptrsPerBlock);
+                        if (blockNum == 0)
+                            return ptrs; // Return empty/zeroed if hole
+
+                        img.seekg((uint64_t)blockNum * blockSize);
+                        img.read(reinterpret_cast<char *>(ptrs.data()), blockSize);
+                        return ptrs;
+                    };
+
+                    //  Direct Blocks (0-11)
+                    for (int i = 0; i < 12; i++)
+                    {
+                        readDataBlock(fileInode.i_block[i]);
+                    }
+
+                    // Singly Indirect Block (12)
+                    if (bytesRead < fileInode.i_size && fileInode.i_block[12] != 0)
+                    {
+                        std::vector<uint32_t> singlePtrs = loadPtrBlock(fileInode.i_block[12]);
+                        for (uint32_t ptr : singlePtrs)
                         {
-
-                            img.seekg(fileInode.i_block[block_counter] * disk.getMiscInfo().block_size);
-                            img.read(reinterpret_cast<char *>(&out[bytesRead]), toRead);
-                            if (img.gcount() != toRead)
-                            {
-                                std::cout << "Err Reading block " << block_counter + 1 << std::endl;
-                                break;
-                            }
-                            bytesRead += toRead;
+                            readDataBlock(ptr);
                         }
                     }
-                    for (uint64_t idx = 0; idx < fileInode.i_size; idx++)
+
+                    // Doubly Indirect Block (13)
+                    if (bytesRead < fileInode.i_size && fileInode.i_block[13] != 0)
                     {
-                        std::cout << out[idx];
+                        std::vector<uint32_t> doublePtrs = loadPtrBlock(fileInode.i_block[13]);
+
+                        for (uint32_t singleBlockPtr : doublePtrs)
+                        {
+                            if (bytesRead >= fileInode.i_size)
+                                break;
+                            if (singleBlockPtr == 0)
+                                continue;
+
+                            std::vector<uint32_t> singlePtrs = loadPtrBlock(singleBlockPtr);
+                            for (uint32_t ptr : singlePtrs)
+                            {
+                                readDataBlock(ptr);
+                            }
+                        }
+
+                        // -Triply Indirect Block (14)
+                        if (bytesRead < fileInode.i_size && fileInode.i_block[14] != 0)
+                        {
+                            std::vector<uint32_t> triplePtrs = loadPtrBlock(fileInode.i_block[14]);
+
+                            for (uint32_t doubleBlockPtr : triplePtrs)
+                            {
+                                if (bytesRead >= fileInode.i_size)
+                                    break;
+                                if (doubleBlockPtr == 0)
+                                    continue;
+
+                                std::vector<uint32_t> doublePtrs = loadPtrBlock(doubleBlockPtr);
+                                for (uint32_t singleBlockPtr : doublePtrs)
+                                {
+                                    if (bytesRead >= fileInode.i_size)
+                                        break;
+                                    if (singleBlockPtr == 0)
+                                        continue;
+
+                                    std::vector<uint32_t> singlePtrs = loadPtrBlock(singleBlockPtr);
+                                    for (uint32_t ptr : singlePtrs)
+                                    {
+                                        readDataBlock(ptr);
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                    // Output content
+                    for (char c : out)
+                    {
+                        std::cout << c;
                     }
                     std::cout << std::endl;
+                    break; // Found and processed, exit loop
                 }
                 else
                 {
-                    std::cout << "ERR: given input " << file << " is not a Regular File" << std::endl;
+                    std::cout << "ERR: " << file << " is not a Regular File" << std::endl;
                 }
+            }
+        }
 
-                break;
+    }
+    if (!found)
+    {
+        std::cout << "No such file " << file << std::endl;
+    }
+}
+void DiskUtil::write(std::ifstream &img, std::string content, std::string file)
+{
+    if (content[0] != '"' && content[content.length() - 1] != '"' && content.length() >= 2)
+    {
+        std::cout << "Err: text should be of format \"<text_here>\"" << std::endl;
+    }
+    else
+    {
+        setDirFiles(img);
+        bool found = false, err = false;
+        for (auto dirEntry : dirEntries)
+        {
+            if (dirEntry.name_len == file.length() && !err)
+            {
+                for (int i = 0; i < dirEntry.name_len; i++)
+                {
+                    if (dirEntry.name[i] != file[i])
+                        break;
+
+                    found = true;
+                    if (dirEntry.file_type != 1)
+                    {
+                        err = true;
+                        std::cout << "ERR: given input " << file << " is not a Regular File" << std::endl;
+                    }
+                    else
+                    {
+                        // TODO update bitmap
+                        // TODO update inode
+                        // TODO update file itself
+                        //  dirEntry.inode
+                        inode fileInode = disk.getInode(dirEntry.inode);
+                        uint32_t prevSize = fileInode.i_size;
+                        fileInode.i_size = content.length() - 2; // content of type "<text>" with " included
+
+                        // std::vector<uint8_t> bitmap = disk.getBitMap(img, 0);
+                        auto freebits = disk.getFreeBlocks(img, 14);
+                        uint8_t prevblockCount = disk.getMiscInfo().block_size;
+                    }
+                }
             }
         }
     }

@@ -2,6 +2,7 @@
 #include "struct.hpp"
 #include "utils.hpp"
 #include <sstream>
+//  TODO: update img value refernce to disk's own img
 int main(int argc, char const *argv[])
 {
 
@@ -63,7 +64,14 @@ int main(int argc, char const *argv[])
                 std::cout << "Invalid Argument format" << std::endl;
             else
                 util.cat(img, args[1]);
+        }else if (args[0] == "write")
+        {
+            if (args.size() != 3)
+                std::cout << "Invalid Argument format" << std::endl;
+            else
+                util.write(img, args[1], args[2]);
         }
+        
 
         else if (in != "exit")
         {

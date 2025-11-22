@@ -6,6 +6,7 @@
 #include <iostream>
 class Disk
 {
+private:
     super_block sb;
     misc_info miscInfo;
     unsigned int filled_inode_count;
@@ -44,6 +45,8 @@ class Disk
     };
 
 public:
+    std::vector<uint8_t> getBitMap(std::ifstream &img, int group_index);
+    std::vector<uint32_t> getFreeBlocks(std::ifstream &img, int n);
     super_block getSuperBlock()
     {
         return sb;
@@ -58,7 +61,7 @@ public:
     }
     inode getInode(unsigned int n)
     {
-        return inodeTableList[n-1];
+        return inodeTableList[n - 1];
     }
     void setSuperBlock(std::ifstream &img);
     void setGDT(std::ifstream &img);
