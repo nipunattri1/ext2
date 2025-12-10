@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <bitset>
 
-void Disk::setSuperBlock(std::fstream &img)
+void Disk::setSuperBlock()
 {
     img.seekg(1024);
     img.read(reinterpret_cast<char *>(&sb), sizeof(sb));
@@ -18,7 +18,7 @@ void Disk::setSuperBlock(std::fstream &img)
         miscInfo.group_count++;
 }
 
-void Disk::setGDT(std::fstream &img)
+void Disk::setGDT()
 {
     img.seekg(2048);
     all_gdt.resize(miscInfo.group_count);
@@ -31,7 +31,7 @@ void Disk::setGDT(std::fstream &img)
     }
 }
 
-void Disk::setinodeTable(std::fstream &img)
+void Disk::setinodeTable()
 {
 
     inodeTableList.resize(sb.inode_count);
@@ -56,30 +56,9 @@ void Disk::setinodeTable(std::fstream &img)
     }
 }
 
-void DiskUtil::setBitMap(uint32_t block_id, bool val, std::fstream &img)
-{
-    /*
-    Adjusted ID=block_id−FirstDataBlock
-    Group Index=Adjusted ID/BlocksPerGroup
-    Local Index=Adjusted ID%BlocksPerGroup
-    */
-   uint32_t adjusted_id = block_id - sb.first_data_block;
-   uint32_t group_index = adjusted_id/sb.group_block_count;
-   uint32_t local_index = adjusted_id%sb.group_block_count;
-
-   uint32_t bit_loc =  getBGD(group_index).block_bitmap + local_index;
-   std::bitset<8> prev;
-   img.seekp(bit_loc);
-   img.seekg(bit_loc);
-   img.read(reinterpret_cast<char *> (&prev), 1);
-   
-   prev |= 01111111;
-   img.write(reinterpret_cast<char *>(&prev), 1);
 
 
-}
-
-std::vector<uint8_t> Disk::getBitMap(std::fstream &img, int group_index)
+std::vector<uint8_t> Disk::getBitMap( int group_index)
 {
     if (group_index < 0 || group_index >= all_gdt.size())
     {
@@ -96,7 +75,7 @@ std::vector<uint8_t> Disk::getBitMap(std::fstream &img, int group_index)
     return bitmap;
 }
 
-std::vector<uint32_t> Disk::getFreeBlocks(std::fstream &img, int n)
+std::vector<uint32_t> Disk::getFreeBlocks( int n)
 {
     std::vector<uint32_t> found_blocks;
 
@@ -104,7 +83,7 @@ std::vector<uint32_t> Disk::getFreeBlocks(std::fstream &img, int n)
     {
         if (found_blocks.size() == n)
             break;
-        std::vector<uint8_t> bitmap = getBitMap(img, group_idx);
+        std::vector<uint8_t> bitmap = getBitMap( group_idx);
 
         for (size_t byte_idx = 0; byte_idx < bitmap.size(); ++byte_idx)
         {
@@ -136,4 +115,31 @@ std::vector<uint32_t> Disk::getFreeBlocks(std::fstream &img, int n)
         }
     }
     return found_blocks;
+}
+void Disk::setInode(unsigned int n, const inode &ino)
+{
+    // n is 1-based inode number, as in getInode
+    unsigned int index = n - 1;
+
+    if (index >= inodeTableList.size())
+        return;
+
+    inodeTableList[index] = ino;
+
+    unsigned int group = index / sb.group_inode_count;
+    unsigned int indexInGroup = index % sb.group_inode_count;
+
+    uint64_t offset = static_cast<uint64_t>(miscInfo.block_size) *
+                      all_gdt[group].addr_inode_table +
+                      static_cast<uint64_t>(indexInGroup) * sb.ext_sb.inode_size;
+
+    img.seekp(offset, std::ios::beg);
+    img.write(reinterpret_cast<const char *>(&ino), sizeof(inode));
+}
+
+void Disk::writeBlock(uint32_t blockNo, const void *buf)
+{
+    uint64_t offset = static_cast<uint64_t>(blockNo) * miscInfo.block_size;
+    img.seekp(offset, std::ios::beg);
+    img.write(reinterpret_cast<const char *>(buf), miscInfo.block_size);
 }

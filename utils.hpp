@@ -4,25 +4,21 @@
 #include <stack>
 class DiskUtil
 {
-    Disk disk;
+    Disk &disk;
     uint64_t curretnInode = 2;
     std::vector<directory> dirEntries;
 
 private:
     void print_gdt_entry(const block_group_decriptor &bgd, uint32_t group_id);
     void printArr(uint8_t arr[], int size);
-    void setDirFiles(std::fstream &img);
-    // std::vector<char> getDirectBlockVal(std::fstream &img,uint32_t blockAddr);
-    std::vector<uint32_t> getAllAllocatedBlocks(std::fstream &img, const inode &fileInode);
-    void setBitMap(uint32_t block_id, bool val, std::fstream &img);
+    void setDirFiles();
+    std::vector<uint32_t> getAllAllocatedBlocks(const inode &fileInode);
+    void setBitMap(uint32_t block_id, bool val);
 
 
 public:
-    void setDisk(Disk &diskIn)
-    {
-        disk = diskIn;
-    }
-    void printSuperBlock(std::fstream &img);
+    DiskUtil(Disk &diskIn) : disk(diskIn) {}
+    void printSuperBlock();
 
     void printGDTEntries()
     {
@@ -32,10 +28,10 @@ public:
         }
     }
 
-    void ls(std::fstream &img);
-    void cd(std::fstream &img, std::string dir);
-    void cat(std::fstream &img, std::string file);
-    void write(std::fstream &img, std::string content, std::string file);
+    void ls();
+    void cd(std::string dir);
+    void cat(std::string file);
+    void write(std::string content, std::string file);
 };
 
 #endif

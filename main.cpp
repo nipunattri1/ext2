@@ -3,8 +3,6 @@
 #include "utils.hpp"
 #include <sstream>
 
-
-// TODO Pass image path onto disk class and let the class handlle the image opeing precedure.
 int main(int argc, char const *argv[])
 {
 
@@ -13,22 +11,11 @@ int main(int argc, char const *argv[])
         std::cerr << "Invalid args, Run program as: " << argv[0] << "<.img>" << std::endl;
         return 1;
     }
-    // read inputed file (img)
-    std::fstream img(argv[1], std::ios::binary);
-    if (!img)
-    {
-        std::cerr << "ERR: Couldn't Open the file" << std::endl;
-        return 1;
-    }
 
-    Disk disk;
-    disk.setSuperBlock(img);
-    disk.setGDT(img);
-    disk.setinodeTable(img);
+    Disk disk(argv[1]);
 
     // setup an util class instance
-    DiskUtil util;
-    util.setDisk(disk);
+    DiskUtil util(disk);
 
     std::string in;
     do
@@ -46,11 +33,11 @@ int main(int argc, char const *argv[])
 
         if (args[0] == "ls")
         {
-            util.ls(img);
+            util.ls();
         }
         else if (args[0] == "info")
         {
-            util.printSuperBlock(img);
+            util.printSuperBlock();
             util.printGDTEntries();
         }
         else if (args[0] == "cd")
@@ -58,22 +45,22 @@ int main(int argc, char const *argv[])
             if (args.size() != 2)
                 std::cout << "Invalid Argument format" << std::endl;
             else
-                util.cd(img, args[1]);
+                util.cd(args[1]);
         }
         else if (args[0] == "cat")
         {
             if (args.size() != 2)
                 std::cout << "Invalid Argument format" << std::endl;
             else
-                util.cat(img, args[1]);
-        }else if (args[0] == "write")
+                util.cat(args[1]);
+        }
+        else if (args[0] == "write")
         {
             if (args.size() != 3)
                 std::cout << "Invalid Argument format" << std::endl;
             else
-                util.write(img, args[1], args[2]);
+                util.write(args[1], args[2]);
         }
-        
 
         else if (in != "exit")
         {
@@ -81,8 +68,6 @@ int main(int argc, char const *argv[])
         }
 
     } while (in != "exit");
-
-    img.close();
 
     return 0;
 }
