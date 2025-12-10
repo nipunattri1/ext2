@@ -22,16 +22,14 @@ There are a few commands implemented so far:
 - `ls` (show info about current directory)
 - `cd <dir_name>` (change directory to `<dir_name>`)
 - `cat` (read contents of files)
-
-### Commands to Add (Yet)
-
-- `nano` (e.g., integrate with a text editor to pass data)
+- `write <"text"> <filename>` writes `text` to the file.
 
 ### Features Implemented So Far
 
 - Reading general info of the filesystem.
 - Traversing through the file structure.
 - Outputting the contents of files.
+- writing to a file
 
 ### General Working of Program
 
@@ -48,5 +46,5 @@ There is a file `struct.hpp` which contains all structs of the program.
 ![ss1](img/ss1.png)
 ![ss2](img/ss2.png)
 ![ss3](img/ss3.png)
-
 ![ss4](img/ss4.png)
+![ss5](img/ss5.png)

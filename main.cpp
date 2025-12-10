@@ -56,10 +56,41 @@ int main(int argc, char const *argv[])
         }
         else if (args[0] == "write")
         {
-            if (args.size() != 3)
+            std::string line;
+            for (size_t i = 0; i < args.size(); ++i)
+            {
+                if (i)
+                    line += ' ';
+                line += args[i];
+            }
+            size_t firstQuote = line.find('"');
+            if (firstQuote == std::string::npos)
+            {
                 std::cout << "Invalid Argument format" << std::endl;
-            else
-                util.write(args[1], args[2]);
+                return 1;
+            }
+            size_t secondQuote = line.find('"', firstQuote + 1);
+            if (secondQuote == std::string::npos)
+            {
+                std::cout << "Invalid Argument format" << std::endl;
+                return 1;
+            }
+
+            std::string content = line.substr(firstQuote, secondQuote - firstQuote + 1);
+
+            size_t pos = secondQuote + 1;
+            while (pos < line.size() && std::isspace(static_cast<unsigned char>(line[pos])))
+                ++pos;
+
+            if (pos >= line.size())
+            {
+                std::cout << "Invalid Argument format" << std::endl;
+                return 1;
+            }
+
+            std::string filename = line.substr(pos);
+
+            util.write(content, filename);
         }
 
         else if (in != "exit")
